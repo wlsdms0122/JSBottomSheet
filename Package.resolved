@@ -1,0 +1,24 @@
+{
+  "originHash" : "a95fea68f7cab086d7fdb505b299ef57710fa3234d73176374ddfd036a95c184",
+  "pins" : [
+    {
+      "identity" : "stylish",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/wlsdms0122/Stylish.git",
+      "state" : {
+        "revision" : "451d7af8ea9ffa965f6aecdc586ea7bbd3a5b08a",
+        "version" : "2.0.0"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-syntax.git",
+      "state" : {
+        "revision" : "64889f0c732f210a935a0ad7cda38f77f876262d",
+        "version" : "509.1.1"
+      }
+    }
+  ],
+  "version" : 3
+}
