@@ -22,14 +22,9 @@ struct OnFrameChangeViewModifier: ViewModifier {
     }
     
     // MARK: - Lifecycle
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         content.overlay(GeometryReader { reader in
-            let frame: CGRect = {
-                var frame = reader.frame(in: coordinateSpace)
-                frame.size = reader.size
-                return frame
-            }()
-            
+            let frame = reader.frame(in: coordinateSpace)
             Color.clear
                 .onAppear {
                     action(frame)
