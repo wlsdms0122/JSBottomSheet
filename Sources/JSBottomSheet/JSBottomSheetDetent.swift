@@ -15,13 +15,13 @@ public enum JSBottomSheetDetent {
     func height(contentSize: CGSize, sheetSize: CGSize) -> CGFloat {
         switch self {
         case let .fixed(height):
-            return height
+            height
             
         case let .fraction(ratio):
-            return sheetSize.height * ratio
+            sheetSize.height * ratio
             
         case .intrinsic:
-            return contentSize.height
+            contentSize.height
         }
     }
 }

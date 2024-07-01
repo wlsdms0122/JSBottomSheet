@@ -301,10 +301,10 @@ public struct JSBottomSheet<
             }
                 .ignoresSafeArea()
         }
-            .ignoresSafeArea()
             .background(alignment: .top) {
                 surface()
             }
+            .ignoresSafeArea()
     }
     
     // MARK: - Property
