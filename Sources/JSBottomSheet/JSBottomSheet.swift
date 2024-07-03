@@ -14,8 +14,8 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
     // MARK: - Property
     private weak var scrollView: UIScrollView?
     
-    private var currentOffset: CGFloat = .zero
-    private var maxOffset: CGFloat = .zero
+    private var currentOffset: CGPoint = .zero
+    private var maxDetent: CGFloat = .zero
     
     private let panGesture: UIPanGestureRecognizer
     
@@ -45,8 +45,8 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         return shouldScroll(
             scrollView: scrollView,
             gesture: gesture,
-            current: currentOffset,
-            max: maxOffset
+            currentOffset: currentOffset,
+            maxDetent: maxDetent
         )
     }
     
@@ -60,8 +60,8 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         return scrollView.contentOffset.y <= 0 && !shouldScroll(
             scrollView: scrollView,
             gesture: gesture,
-            current: currentOffset,
-            max: maxOffset
+            currentOffset: currentOffset,
+            maxDetent: maxDetent
         )
     }
     
@@ -79,8 +79,8 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
     // MARK: - Public
     func attach(
         scrollView: UIScrollView,
-        sheetOffset: CGFloat,
-        maxOffset: CGFloat,
+        currentOffset: CGPoint,
+        maxDetent: CGFloat,
         onChanged: @escaping (CGPoint) -> Void,
         onEnded: @escaping (CGPoint) -> Void
     ) {
@@ -88,8 +88,8 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
        
         self.scrollView = scrollView
         
-        self.currentOffset = sheetOffset
-        self.maxOffset = maxOffset
+        self.currentOffset = currentOffset
+        self.maxDetent = maxDetent
         
         self.onChanged = onChanged
         self.onEnded = onEnded
@@ -99,13 +99,13 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
     private func shouldScroll(
         scrollView: UIScrollView,
         gesture: UIPanGestureRecognizer,
-        current currentOffset: CGFloat,
-        max maxOffset: CGFloat
+        currentOffset: CGPoint,
+        maxDetent: CGFloat
     ) -> Bool {
         let translation = gesture.translation(in: gesture.view)
         let directionAdjust = translation.y > 0 ? -10.0 : 10.0
         
-        return currentOffset + scrollView.contentOffset.y + directionAdjust > maxOffset
+        return currentOffset.y + scrollView.contentOffset.y + directionAdjust > maxDetent
     }
     
     @objc
@@ -135,6 +135,8 @@ public struct JSBottomSheetOptions {
     public var canBackdropDismiss: Bool = true
     /// Bottom sheet content insets. The intrinsic detent calculate size include insets.
     public var contentInsets: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
+    /// Bottom sheet geometry changed handler.
+    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }
 }
 
 public struct JSBottomSheet<
@@ -185,16 +187,25 @@ public struct JSBottomSheet<
             let minDetent = detents.map(\.value).min() ?? 0
             let currentDetent = detents[detentState] ?? 0
             
-            let baseOffset = maxDetent / 2
-                + sheetSize.height / 2
-                + safeAreaInsets.bottom
-            let currentOffset = currentDetent - translation.y
+            let baseOffset = CGPoint(
+                x: 0,
+                y: maxDetent / 2
+                    + sheetSize.height / 2
+                    + safeAreaInsets.bottom
+            )
+            let currentOffset = CGPoint(
+                x: 0,
+                y: currentDetent - translation.y
+            )
             
-            let sheetOffset = isPresenting
-                ? baseOffset
-                    - max(min(currentOffset, maxDetent), minDetent)
-                    - safeAreaInsets.bottom
-                : baseOffset
+            let sheetOffset = CGPoint(
+                x: 0,
+                y: isPresenting
+                    ? baseOffset.y
+                        - max(min(currentOffset.y, maxDetent), minDetent)
+                        - safeAreaInsets.bottom
+                    : baseOffset.y
+            )
             
             let backdropOpacity = isPresenting ? 1.0 : 0.0
             
@@ -210,20 +221,27 @@ public struct JSBottomSheet<
                 SheetContent(
                     detents: detents,
                     currentOffset: currentOffset,
-                    maxOffset: maxDetent
+                    maxDetent: maxDetent
                 ) {
                     sheet.frame(height: screenSize.height)
                 } content: { item in
                     content(item)
                 }
                     .frame(height: maxDetent)
-                    .offset(y: sheetOffset)
+                    .offset(y: sheetOffset.y)
                     .animation(.easeInOut(duration: 0.2), value: sheetOffset)
             }
                 .frame(
                     width: reader.size.width,
                     height: reader.size.height
                 )
+                .onChange(of: sheetOffset) { offset in
+                    options.onBottomSheetGeometryChange(.init(
+                        contentOffset: offset,
+                        sheetSize: sheetSize,
+                        detents: detents
+                    ))
+                }
         }
             .onChange(
                 of: PresentingContent(
@@ -258,8 +276,8 @@ public struct JSBottomSheet<
         SheetSurface: View
     >(
         detents: [DetentState: CGFloat],
-        currentOffset: CGFloat,
-        maxOffset: CGFloat,
+        currentOffset: CGPoint,
+        maxDetent: CGFloat,
         @ViewBuilder surface: @escaping () -> SheetSurface,
         @ViewBuilder content: (Item) -> SheetContent
     ) -> some View {
@@ -280,8 +298,8 @@ public struct JSBottomSheet<
             } lookedUp: { scrollView, coordinator in
                 coordinator.attach(
                     scrollView: scrollView,
-                    sheetOffset: currentOffset,
-                    maxOffset: maxOffset
+                    currentOffset: currentOffset,
+                    maxDetent: maxDetent
                 ) { translation in
                     self.translation = translation
                 } onEnded: { translation in
@@ -394,9 +412,9 @@ public struct JSBottomSheet<
     private func nearestDetent(
         state: DetentState,
         detents: [DetentState: CGFloat],
-        offset: CGFloat
+        offset: CGPoint
     ) -> DetentState {
-        detents.min { lhs, rhs in abs(lhs.value - offset) < abs(rhs.value - offset) }?
+        detents.min { lhs, rhs in abs(lhs.value - offset.y) < abs(rhs.value - offset.y) }?
             .key ?? state
     }
 }
@@ -463,7 +481,7 @@ private struct Preview: View {
                 detents: [
                     "tip": .fixed(200),
                     "small": .fixed(400),
-                    "large": .fixed(600)
+                    "large": .fraction(1)
                 ]
             ) {
                 Color.clear
@@ -492,6 +510,9 @@ private struct Preview: View {
                     style: \.contentInsets.top,
                     to: 15
                 )
+                .configure(JSBottomSheetOptions.self, style: \.onBottomSheetGeometryChange) { geometry in
+                    print(geometry.contentOffset, geometry.location(for: "small"))
+                }
         }
             .background{
                 Color(uiColor: .systemGroupedBackground)
