@@ -7,10 +7,10 @@
 
 import SwiftUI
 
-public struct JSBottomSheetDefaultSheet<Grabber: View>: View {
+public struct JSBottomSheetDefaultSheet<Background: View, Grabber: View>: View {
     // MARK: - View
     public var body: some View {
-        backgroundColor.overlay{
+        background.overlay{
             grabber.frame(
                 maxWidth: .infinity,
                 maxHeight: .infinity,
@@ -26,17 +26,17 @@ public struct JSBottomSheetDefaultSheet<Grabber: View>: View {
     }
     
     // MARK: - Property
-    private let backgroundColor: Color
+    private let background: Background
     private let cornerRadius: CGFloat
     private let grabber: Grabber
     
     // MARK: - Initializer
     public init(
-        backgroundColor: Color = .white,
+        background: Background = Color.white,
         cornerRadius: CGFloat = 10,
         @ViewBuilder grabber: () -> Grabber = { EmptyView() }
     ) {
-        self.backgroundColor = backgroundColor
+        self.background = background
         self.cornerRadius = cornerRadius
         self.grabber = grabber()
     }

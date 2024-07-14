@@ -105,7 +105,12 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         let translation = gesture.translation(in: gesture.view)
         let directionAdjust = translation.y > 0 ? -10.0 : 10.0
         
-        return currentOffset.y + scrollView.contentOffset.y + directionAdjust > maxDetent
+        let predictiveOffset = currentOffset.y
+            + scrollView.contentOffset.y
+            + scrollView.adjustedContentInset.top
+            + directionAdjust
+        
+        return predictiveOffset > maxDetent
     }
     
     @objc
@@ -133,6 +138,8 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
 public struct JSBottomSheetOptions {
     /// Bottom sheet should dismiss when backdrop tap. The default value of this property is `true`.
     public var canBackdropDismiss: Bool = true
+    /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
+    public var canScroll: Bool = true
     /// Bottom sheet content insets. The intrinsic detent calculate size include insets.
     public var contentInsets: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     /// Bottom sheet geometry changed handler.
@@ -213,6 +220,7 @@ public struct JSBottomSheet<
                 backdrop
                     .ignoresSafeArea()
                     .opacity(backdropOpacity)
+                    .animation(.easeInOut(duration: 0.2), value: backdropOpacity)
                     .onTapGesture {
                         guard options.canBackdropDismiss else { return }
                         item = nil
@@ -231,10 +239,7 @@ public struct JSBottomSheet<
                     .offset(y: sheetOffset.y)
                     .animation(.easeInOut(duration: 0.2), value: sheetOffset)
             }
-                .frame(
-                    width: reader.size.width,
-                    height: reader.size.height
-                )
+                .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
                     options.onBottomSheetGeometryChange(.init(
                         contentOffset: offset,
@@ -254,10 +259,7 @@ public struct JSBottomSheet<
                 }
                 
                 guard presenting.contentSize != .zero else { return }
-                
-                withAnimation(.easeOut(duration: 0.3)) {
-                    self.isPresenting = presenting.isPresenting
-                }
+                self.isPresenting = presenting.isPresenting
                 
                 if let timeout, presenting.isPresenting {
                     timeoutTask = Task {
@@ -279,50 +281,68 @@ public struct JSBottomSheet<
         currentOffset: CGPoint,
         maxDetent: CGFloat,
         @ViewBuilder surface: @escaping () -> SheetSurface,
-        @ViewBuilder content: (Item) -> SheetContent
+        @ViewBuilder content: @escaping (Item) -> SheetContent
     ) -> some View {
-        GestureView(of: UIPanGestureRecognizer.self) { gesture in
-            self.translation = gesture.translation(in: gesture.view)
-        } onChanged: { gesture in
-            self.translation = gesture.translation(in: gesture.view)
-        } onEnded: { _ in
-            self.translation = .zero
-            self.detentState = nearestDetent(
-                state: detentState,
-                detents: detents,
-                offset: currentOffset
-            )
-        } content: {
-            LookUp(UIScrollView.self) {
-                ScrollViewGestureHandler()
-            } lookedUp: { scrollView, coordinator in
-                coordinator.attach(
-                    scrollView: scrollView,
-                    currentOffset: currentOffset,
-                    maxDetent: maxDetent
-                ) { translation in
-                    self.translation = translation
-                } onEnded: { translation in
-                    self.translation = translation
-                    self.detentState = nearestDetent(
-                        state: detentState,
-                        detents: detents,
-                        offset: currentOffset
-                    )
-                }
+        if options.canScroll {
+            GestureView(of: UIPanGestureRecognizer.self) { gesture in
+                self.translation = gesture.translation(in: gesture.view)
+            } onChanged: { gesture in
+                self.translation = gesture.translation(in: gesture.view)
+            } onEnded: { _ in
+                self.translation = .zero
+                self.detentState = nearestDetent(
+                    state: detentState,
+                    detents: detents,
+                    offset: currentOffset
+                )
             } content: {
-                if let item = itemCache {
-                    content(item).padding(options.contentInsets)
-                        .onFrameChange($contentSize, path: \.size)
-                        .frame(maxHeight: .infinity, alignment: .top)
+                LookUp(UIScrollView.self) {
+                    ScrollViewGestureHandler()
+                } lookedUp: { scrollView, coordinator in
+                    coordinator.attach(
+                        scrollView: scrollView,
+                        currentOffset: currentOffset,
+                        maxDetent: maxDetent
+                    ) { translation in
+                        self.translation = translation
+                    } onEnded: { translation in
+                        self.translation = translation
+                        self.detentState = nearestDetent(
+                            state: detentState,
+                            detents: detents,
+                            offset: currentOffset
+                        )
+                    }
+                } content: {
+                    GeometryReader { _ in
+                        ContentView(content: content)
+                    }
                 }
-            }
                 .ignoresSafeArea()
-        }
+            }
             .background(alignment: .top) {
                 surface()
             }
             .ignoresSafeArea()
+        } else {
+            ContentView(content: content)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .background(alignment: .top) {
+                    surface().ignoresSafeArea()
+                }
+        }
+        
+        // Shadow view
+        ContentView(content: content)
+            .opacity(0)
+            .onFrameChange($contentSize, path: \.size)
+    }
+    
+    @ViewBuilder
+    private func ContentView<SheetContent: View>(@ViewBuilder content: @escaping (Item) -> SheetContent) -> some View {
+        if let item = itemCache {
+            content(item).padding(options.contentInsets)
+        }
     }
     
     // MARK: - Property
@@ -352,7 +372,7 @@ public struct JSBottomSheet<
     @Binding
     private var detentState: DetentState
     /// All detents
-    private var detents: [DetentState: JSBottomSheetDetent]
+    private let detents: [DetentState: JSBottomSheetDetent]
     
     private let backdrop: Backdrop
     private let sheet: Sheet
@@ -449,85 +469,7 @@ public extension View {
 }
 
 #if DEBUG
-private struct Preview: View {
-    var body: some View {
-        ZStack {
-            List {
-                Section("Bottom Sheet") {
-                    Button(isPresented ? "Hide" : "Show") {
-                        isPresented.toggle()
-                    }
-                    
-                    HStack {
-                        Text("Status")
-                        Picker(selection: $detentState) {
-                            Text("Tip")
-                                .tag("tip")
-                            Text("Small")
-                                .tag("small")
-                            Text("Large")
-                                .tag("large")
-                        } label: {
-                            EmptyView()
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                }
-            }
-            
-            JSBottomSheet(
-                $isPresented,
-                detentState: $detentState,
-                detents: [
-                    "tip": .fixed(200),
-                    "small": .fixed(400),
-                    "large": .fraction(1)
-                ]
-            ) {
-                Color.clear
-            } sheet: {
-                JSBottomSheetDefaultSheet {
-                    RoundedRectangle(cornerRadius: 2.5)
-                        .foregroundColor(Color(uiColor: .systemGray3))
-                        .frame(width: 36, height: 5)
-                        .offset(y: 5)
-                }
-            } content: {
-                ScrollView {
-                    VStack {
-                        ForEach(0..<100, id: \.self) { id in
-                            Text("\(id)")
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .border(.black)
-                        }
-                    }
-                        .frame(maxWidth: .infinity)
-                }
-            }
-                .configure(
-                    JSBottomSheetOptions.self,
-                    style: \.contentInsets.top,
-                    to: 15
-                )
-                .configure(JSBottomSheetOptions.self, style: \.onBottomSheetGeometryChange) { geometry in
-                    print(geometry.contentOffset, geometry.location(for: "small"))
-                }
-        }
-            .background{
-                Color(uiColor: .systemGroupedBackground)
-                    .ignoresSafeArea()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    @State
-    private var isPresented: Bool = false
-    @State
-    private var detentState: String = "tip"
-}
-
 #Preview {
-    Preview()
+    _Preview()
 }
 #endif
