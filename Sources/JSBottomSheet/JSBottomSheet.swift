@@ -239,6 +239,7 @@ public struct JSBottomSheet<
                     .offset(y: sheetOffset.y)
                     .animation(.easeInOut(duration: 0.2), value: sheetOffset)
             }
+                .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
                     options.onBottomSheetGeometryChange(.init(
                         contentOffset: offset,
@@ -466,83 +467,7 @@ public extension View {
 }
 
 #if DEBUG
-private struct Preview: View {
-    var body: some View {
-        ZStack {
-            List {
-                Section("Bottom Sheet") {
-                    HStack {
-                        Text("Sheet Present")
-                        Spacer()
-                        Toggle(isOn: $isPresented) { EmptyView() }
-                    }
-                    HStack {
-                        Text("Can Scroll")
-                        Spacer()
-                        Toggle(isOn: $canScroll) { EmptyView() }
-                    }
-                    HStack {
-                        Text("Status")
-                        Picker(selection: $detentState) {
-                            Text("Tip")
-                                .tag("tip")
-                            Text("Small")
-                                .tag("small")
-                            Text("Large")
-                                .tag("large")
-                        } label: {
-                            EmptyView()
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                }
-            }
-            
-            JSBottomSheet(
-                $isPresented,
-                detentState: $detentState,
-                detents: [
-                    "tip": .fixed(200),
-                    "small": .fixed(400),
-                    "large": .fraction(1)
-                ]
-            ) {
-                Color.clear
-            } content: {
-                ScrollView {
-                    VStack {
-                        ForEach(0..<100, id: \.self) { id in
-                            Text("\(id)")
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .border(.black)
-                        }
-                    }
-                        .frame(maxWidth: .infinity)
-                }
-            }
-                .configure(
-                    JSBottomSheetOptions.self,
-                    style: \.contentInsets.top,
-                    to: 15
-                )
-                .configure(
-                    JSBottomSheetOptions.self,
-                    style: \.canScroll,
-                    to: canScroll
-                )
-        }
-    }
-    
-    @State
-    private var isPresented: Bool = false
-    @State
-    private var canScroll: Bool = true
-    @State
-    private var detentState: String = "tip"
-}
-
 #Preview {
-    Preview()
+    _Preview()
 }
 #endif
