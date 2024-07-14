@@ -314,13 +314,8 @@ public struct JSBottomSheet<
                         )
                     }
                 } content: {
-                    if let item = itemCache {
-                        GeometryReader { _ in
-                            content(item)
-                                .padding(options.contentInsets)
-                                .onFrameChange($contentSize, path: \.size)
-                                .frame(maxWidth: .infinity)
-                        }
+                    GeometryReader { _ in
+                        ContentView(content: content)
                     }
                 }
                 .ignoresSafeArea()
@@ -330,16 +325,23 @@ public struct JSBottomSheet<
             }
             .ignoresSafeArea()
         } else {
-            Group {
-                if let item = itemCache {
-                    content(item).padding(options.contentInsets)
-                        .onFrameChange($contentSize, path: \.size)
-                        .frame(maxHeight: .infinity, alignment: .top)
+            ContentView(content: content)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .background(alignment: .top) {
+                    surface().ignoresSafeArea()
                 }
-            }
-            .background(alignment: .top) {
-                surface().ignoresSafeArea()
-            }
+        }
+        
+        // Shadow view
+        ContentView(content: content)
+            .opacity(0)
+            .onFrameChange($contentSize, path: \.size)
+    }
+    
+    @ViewBuilder
+    private func ContentView<SheetContent: View>(@ViewBuilder content: @escaping (Item) -> SheetContent) -> some View {
+        if let item = itemCache {
+            content(item).padding(options.contentInsets)
         }
     }
     
@@ -370,7 +372,7 @@ public struct JSBottomSheet<
     @Binding
     private var detentState: DetentState
     /// All detents
-    private var detents: [DetentState: JSBottomSheetDetent]
+    private let detents: [DetentState: JSBottomSheetDetent]
     
     private let backdrop: Backdrop
     private let sheet: Sheet
