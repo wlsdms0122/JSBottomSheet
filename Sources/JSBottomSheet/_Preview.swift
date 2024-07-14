@@ -129,6 +129,7 @@ struct _Preview: View {
                             Picker(selection: .init {
                                 option.detent
                             } set: { detent in
+                                guard offset < detentOptions.count else { return }
                                 detentOptions[offset] = option
                                     .applying(detent: detent)
                             }) {
@@ -151,6 +152,7 @@ struct _Preview: View {
                                 TextField(value: .init {
                                     option.value
                                 } set: { value in
+                                    guard offset < detentOptions.count else { return }
                                     detentOptions[offset] = option
                                         .applying(value: value)
                                 }, formatter: numberFormatter) {
@@ -163,7 +165,7 @@ struct _Preview: View {
                     }
                     
                     SettingItem {
-                        Button("Add Statue") {
+                        Button("Add Detent") {
                             switch detentOptions.count {
                             case 1:
                                 detentOptions.append(.init("small"))
@@ -179,7 +181,7 @@ struct _Preview: View {
                     }
                      
                     SettingItem {
-                        Button("Delete Statue") {
+                        Button("Delete Detent") {
                             guard detentOptions.count > 1 else { return }
                             
                             let detent = detentOptions.removeLast()
