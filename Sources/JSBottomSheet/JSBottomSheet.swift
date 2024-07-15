@@ -334,6 +334,7 @@ public struct JSBottomSheet<
         
         // Shadow view
         ContentView(content: content)
+            .disabled(true)
             .opacity(0)
             .onFrameChange($contentSize, path: \.size)
     }
