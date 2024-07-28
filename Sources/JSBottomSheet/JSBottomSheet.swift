@@ -248,20 +248,16 @@ public struct JSBottomSheet<
                     ))
                 }
         }
+            .onChange(of: item != nil) { _ in
+                guard let item else { return }
+                self.itemCache = item
+            }
             .onChange(
-                of: PresentingContent(
-                    item != nil,
-                    contentSize: contentSize
-                )
-            ) { presenting in
-                if let item {
-                    self.itemCache = item
-                }
+                of: item != nil && contentSize != .zero
+            ) { isPresenting in
+                self.isPresenting = isPresenting
                 
-                guard presenting.contentSize != .zero else { return }
-                self.isPresenting = presenting.isPresenting
-                
-                if let timeout, presenting.isPresenting {
+                if let timeout, isPresenting {
                     timeoutTask = Task {
                         try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                         item = nil
@@ -331,18 +327,13 @@ public struct JSBottomSheet<
                     surface().ignoresSafeArea()
                 }
         }
-        
-        // Shadow view
-        ContentView(content: content)
-            .disabled(true)
-            .opacity(0)
-            .onFrameChange($contentSize, path: \.size)
     }
     
     @ViewBuilder
     private func ContentView<SheetContent: View>(@ViewBuilder content: @escaping (Item) -> SheetContent) -> some View {
         if let item = itemCache {
             content(item).padding(options.contentInsets)
+                .onFrameChange($contentSize, path: \.size)
         }
     }
     
