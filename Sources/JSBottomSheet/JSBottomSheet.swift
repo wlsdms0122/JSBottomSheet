@@ -327,18 +327,13 @@ public struct JSBottomSheet<
                     surface().ignoresSafeArea()
                 }
         }
-        
-        // Shadow view
-        ContentView(content: content)
-            .disabled(true)
-            .opacity(0)
-            .onFrameChange($contentSize, path: \.size)
     }
     
     @ViewBuilder
     private func ContentView<SheetContent: View>(@ViewBuilder content: @escaping (Item) -> SheetContent) -> some View {
         if let item = itemCache {
             content(item).padding(options.contentInsets)
+                .onFrameChange($contentSize, path: \.size)
         }
     }
     
