@@ -343,15 +343,14 @@ public struct JSBottomSheet<
                         ContentView(content: content)
                     }
                 }
+                    .ignoresSafeArea()
+            }
+                .background(alignment: .top) {
+                    surface()
+                }
                 .ignoresSafeArea()
-            }
-            .background(alignment: .top) {
-                surface()
-            }
-            .ignoresSafeArea()
         } else {
             ContentView(content: content)
-                .frame(maxHeight: .infinity, alignment: .top)
                 .background(alignment: .top) {
                     surface().ignoresSafeArea()
                 }
@@ -363,6 +362,7 @@ public struct JSBottomSheet<
         if let item = itemCache {
             content(item).padding(options.contentInsets)
                 .onFrameChange($contentSize, path: \.size)
+                .frame(maxWidth: .infinity)
         }
     }
     
