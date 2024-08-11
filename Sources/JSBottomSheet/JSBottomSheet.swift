@@ -16,6 +16,7 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
     
     private var currentOffset: CGPoint = .zero
     private var maxDetent: CGFloat = .zero
+    private var contentScrollBehavior: JSBottomSheetContentScrollBehavior = .none
     
     private let panGesture: UIPanGestureRecognizer
     
@@ -81,6 +82,7 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         scrollView: UIScrollView,
         currentOffset: CGPoint,
         maxDetent: CGFloat,
+        contentScrollBehavior: JSBottomSheetContentScrollBehavior,
         onChanged: @escaping (CGPoint) -> Void,
         onEnded: @escaping (CGPoint) -> Void
     ) {
@@ -90,6 +92,7 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         
         self.currentOffset = currentOffset
         self.maxDetent = maxDetent
+        self.contentScrollBehavior = contentScrollBehavior
         
         self.onChanged = onChanged
         self.onEnded = onEnded
@@ -103,6 +106,9 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         maxDetent: CGFloat
     ) -> Bool {
         let translation = gesture.translation(in: gesture.view)
+        
+        guard checkScrollBehavior(contentScrollBehavior, translation: translation) else { return true }
+        
         let directionAdjust = translation.y > 0 ? -10.0 : 10.0
         
         let predictiveOffset = currentOffset.y
@@ -111,6 +117,22 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
             + directionAdjust
         
         return predictiveOffset > maxDetent
+    }
+    
+    private func checkScrollBehavior(_ behavior: JSBottomSheetContentScrollBehavior, translation: CGPoint) -> Bool {
+        switch behavior {
+        case .both:
+            true
+            
+        case .up:
+            translation.y <= 0
+            
+        case .down:
+            translation.y > 0
+            
+        case .none:
+            false
+        }
     }
     
     @objc
@@ -140,6 +162,8 @@ public struct JSBottomSheetOptions {
     public var canBackdropDismiss: Bool = true
     /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
     public var canScroll: Bool = true
+    /// Bottom sheet adjusts its size based on the content's scroll direction. The default value of this property is `both`.
+    public var contentScrollBehavior: JSBottomSheetContentScrollBehavior = .both
     /// Bottom sheet content insets. The intrinsic detent calculate size include insets.
     public var contentInsets: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     /// Bottom sheet geometry changed handler.
@@ -227,9 +251,11 @@ public struct JSBottomSheet<
                     }
                 
                 SheetContent(
+                    canScroll: options.canScroll,
                     detents: detents,
                     currentOffset: currentOffset,
-                    maxDetent: maxDetent
+                    maxDetent: maxDetent,
+                    contentScrollBehavior: options.contentScrollBehavior
                 ) {
                     sheet.frame(height: screenSize.height)
                 } content: { item in
@@ -273,13 +299,15 @@ public struct JSBottomSheet<
         SheetContent: View,
         SheetSurface: View
     >(
+        canScroll: Bool,
         detents: [DetentState: CGFloat],
         currentOffset: CGPoint,
         maxDetent: CGFloat,
+        contentScrollBehavior: JSBottomSheetContentScrollBehavior,
         @ViewBuilder surface: @escaping () -> SheetSurface,
         @ViewBuilder content: @escaping (Item) -> SheetContent
     ) -> some View {
-        if options.canScroll {
+        if canScroll {
             GestureView(of: UIPanGestureRecognizer.self) { gesture in
                 self.translation = gesture.translation(in: gesture.view)
             } onChanged: { gesture in
@@ -298,7 +326,8 @@ public struct JSBottomSheet<
                     coordinator.attach(
                         scrollView: scrollView,
                         currentOffset: currentOffset,
-                        maxDetent: maxDetent
+                        maxDetent: maxDetent,
+                        contentScrollBehavior: contentScrollBehavior
                     ) { translation in
                         self.translation = translation
                     } onEnded: { translation in
