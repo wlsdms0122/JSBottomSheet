@@ -263,7 +263,7 @@ public struct JSBottomSheet<
                 }
                     .frame(height: maxDetent)
                     .offset(y: sheetOffset.y)
-                    .animation(.easeInOut(duration: 0.2), value: sheetOffset)
+                    .animation(.easeInOut(duration: 2), value: sheetOffset)
             }
                 .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
@@ -350,7 +350,9 @@ public struct JSBottomSheet<
                 }
                 .ignoresSafeArea()
         } else {
-            ContentView(content: content)
+            GeometryReader { _ in
+                ContentView(content: content)
+            }
                 .background(alignment: .top) {
                     surface().ignoresSafeArea()
                 }
