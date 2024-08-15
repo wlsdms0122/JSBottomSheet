@@ -94,6 +94,24 @@ struct _Preview: View {
                     }
                     SettingItem(
                         icon: Image(systemName: "list.bullet.below.rectangle"),
+                        title: "Scroll Behavior"
+                    ) {
+                        Picker(selection: $scrollBehavior) {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .tag(JSBottomSheetContentScrollBehavior.both)
+                            Image(systemName: "arrow.up")
+                                .tag(JSBottomSheetContentScrollBehavior.up)
+                            Image(systemName: "arrow.down")
+                                .tag(JSBottomSheetContentScrollBehavior.down)
+                            Image(systemName: "xmark")
+                                .tag(JSBottomSheetContentScrollBehavior.none)
+                        } label: {
+                            EmptyView()
+                        }
+                            .pickerStyle(.segmented)
+                    }
+                    SettingItem(
+                        icon: Image(systemName: "list.bullet.below.rectangle"),
                         title: "Style"
                     ) {
                         Picker(selection: $style) {
@@ -218,8 +236,7 @@ struct _Preview: View {
                 switch style {
                 case .plain:
                     Text("Hello JSBottomSheet")
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 300)
+                        .padding()
                         .border(.black)
                     
                 case .scrollable:
@@ -239,6 +256,11 @@ struct _Preview: View {
                     JSBottomSheetOptions.self,
                     style: \.contentInsets.top,
                     to: 14
+                )
+                .configure(
+                    JSBottomSheetOptions.self,
+                    style: \.contentScrollBehavior,
+                    to: scrollBehavior
                 )
                 .configure(
                     JSBottomSheetOptions.self,
@@ -278,6 +300,8 @@ struct _Preview: View {
     private var isPresented: Bool = false
     @State
     private var canScroll: Bool = true
+    @State
+    private var scrollBehavior: JSBottomSheetContentScrollBehavior = .both
     @State
     private var style: ContentStyle = .plain
     @State
