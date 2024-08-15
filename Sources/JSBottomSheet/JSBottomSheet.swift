@@ -177,22 +177,6 @@ public struct JSBottomSheet<
     Sheet: View,
     Content: View
 >: View {
-    private struct PresentingContent: Equatable {
-        // MARK: - Property
-        let isPresenting: Bool
-        let contentSize: CGSize
-        
-        // MARK: - Intializer
-        init(_ isPresenting: Bool, contentSize: CGSize) {
-            self.isPresenting = isPresenting
-            self.contentSize = contentSize
-        }
-        
-        // MARK: - Public
-        
-        // MARK: - Private
-    }
-    
     // MARK: - View
     public var body: some View {
         GeometryReader { reader in
@@ -278,9 +262,7 @@ public struct JSBottomSheet<
                 guard let item else { return }
                 self.itemCache = item
             }
-            .onChange(
-                of: item != nil && contentSize != .zero
-            ) { isPresenting in
+            .onChange(of: item != nil && itemCache != nil) { isPresenting in
                 self.isPresenting = isPresenting
                 
                 if let timeout, isPresenting {
