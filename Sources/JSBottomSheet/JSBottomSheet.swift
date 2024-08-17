@@ -247,7 +247,7 @@ public struct JSBottomSheet<
                 }
                     .frame(height: maxDetent)
                     .offset(y: sheetOffset.y)
-                    .animation(.easeInOut(duration: 2), value: sheetOffset)
+                    .animation(.easeInOut(duration: 0.2), value: sheetOffset)
             }
                 .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
