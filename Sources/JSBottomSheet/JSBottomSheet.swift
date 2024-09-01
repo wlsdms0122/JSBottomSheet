@@ -323,13 +323,13 @@ public struct JSBottomSheet<
                 } content: {
                     GeometryReader { _ in
                         ContentView(content: content)
+                            .background(alignment: .top) {
+                                surface()
+                            }
                     }
                 }
                     .ignoresSafeArea()
             }
-                .background(alignment: .top) {
-                    surface()
-                }
                 .ignoresSafeArea()
         } else {
             GeometryReader { _ in
