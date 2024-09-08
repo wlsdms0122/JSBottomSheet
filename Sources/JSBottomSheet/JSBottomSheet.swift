@@ -336,7 +336,7 @@ public struct JSBottomSheet<
                     GeometryReader { _ in
                         ContentView(content: content)
                             .background(alignment: .top) {
-                                surface()
+                                surface().ignoresSafeArea()
                             }
                     }
                 }
