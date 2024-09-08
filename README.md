@@ -159,10 +159,18 @@ public struct JSBottomSheetOptions {
     public var canBackdropDismiss: Bool = true
     /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
     public var canScroll: Bool = true
+    /// Bottom sheet adjusts its size based on the content's scroll direction. The default value of this property is `both`.
+    public var contentScrollBehavior: JSBottomSheetContentScrollBehavior = .both
     /// Bottom sheet content insets. The intrinsic detent calculate size include insets.
     public var contentInsets: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     /// Bottom sheet geometry changed handler.
-    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }
+    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }    
+    /// Animation used when presenting or dismissing the bottom sheet.
+    public var presentAnimation: Animation = .easeInOut(duration: 0.2)
+    /// Animation used when the sheet's position changes within its current detent.
+    public var positionChangeAnimation: Animation = .easeInOut(duration: 0.2)
+    /// Animation used when transitioning between detents.
+    public var detentTransitionAnimation: Animation = .easeInOut(duration: 0.2)
 }
 ```
 
