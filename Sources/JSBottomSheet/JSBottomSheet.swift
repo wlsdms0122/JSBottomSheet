@@ -160,14 +160,20 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
 public struct JSBottomSheetOptions {
     /// Bottom sheet should dismiss when backdrop tap. The default value of this property is `true`.
     public var canBackdropDismiss: Bool = true
-    /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
+    // / Bottom sheet should scroll to change detent. The default value of this property is `true`.
     public var canScroll: Bool = true
     /// Bottom sheet adjusts its size based on the content's scroll direction. The default value of this property is `both`.
     public var contentScrollBehavior: JSBottomSheetContentScrollBehavior = .both
     /// Bottom sheet content insets. The intrinsic detent calculate size include insets.
     public var contentInsets: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     /// Bottom sheet geometry changed handler.
-    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }
+    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }    
+    /// Animation used when presenting or dismissing the bottom sheet.
+    public var presentAnimation: Animation = .easeInOut(duration: 0.2)
+    /// Animation used when the sheet's position changes within its current detent.
+    public var positionChangeAnimation: Animation = .easeInOut(duration: 0.2)
+    /// Animation used when transitioning between detents.
+    public var detentTransitionAnimation: Animation = .easeInOut(duration: 0.2)
 }
 
 public struct JSBottomSheet<
@@ -247,7 +253,7 @@ public struct JSBottomSheet<
                 }
                     .frame(height: maxDetent)
                     .offset(y: sheetOffset.y)
-                    .animation(.easeInOut(duration: 0.2), value: sheetOffset)
+                    .animation(options.presentAnimation, value: isPresenting)
             }
                 .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
@@ -262,9 +268,7 @@ public struct JSBottomSheet<
                 guard let item else { return }
                 self.itemCache = item
             }
-            .onChange(of: item != nil && itemCache != nil) { isPresenting in
-                self.isPresenting = isPresenting
-                
+            .onChange(of: isPresenting) { isPresenting in
                 if let timeout, isPresenting {
                     timeoutTask = Task {
                         try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
@@ -293,14 +297,18 @@ public struct JSBottomSheet<
             GestureView(of: UIPanGestureRecognizer.self) { gesture in
                 self.translation = gesture.translation(in: gesture.view)
             } onChanged: { gesture in
-                self.translation = gesture.translation(in: gesture.view)
+                withAnimation(options.positionChangeAnimation) {
+                    self.translation = gesture.translation(in: gesture.view)
+                }
             } onEnded: { _ in
-                self.translation = .zero
-                self.detentState = nearestDetent(
-                    state: detentState,
-                    detents: detents,
-                    offset: currentOffset
-                )
+                withAnimation(options.detentTransitionAnimation) {
+                    self.translation = .zero
+                    self.detentState = nearestDetent(
+                        state: detentState,
+                        detents: detents,
+                        offset: currentOffset
+                    )
+                }
             } content: {
                 LookUp(UIScrollView.self) {
                     ScrollViewGestureHandler()
@@ -311,20 +319,24 @@ public struct JSBottomSheet<
                         maxDetent: maxDetent,
                         contentScrollBehavior: contentScrollBehavior
                     ) { translation in
-                        self.translation = translation
+                        withAnimation(options.positionChangeAnimation) {
+                            self.translation = translation
+                        }
                     } onEnded: { translation in
-                        self.translation = translation
-                        self.detentState = nearestDetent(
-                            state: detentState,
-                            detents: detents,
-                            offset: currentOffset
-                        )
+                        withAnimation(options.detentTransitionAnimation) {
+                            self.translation = translation
+                            self.detentState = nearestDetent(
+                                state: detentState,
+                                detents: detents,
+                                offset: currentOffset
+                            )
+                        }
                     }
                 } content: {
                     GeometryReader { _ in
                         ContentView(content: content)
                             .background(alignment: .top) {
-                                surface()
+                                surface().ignoresSafeArea()
                             }
                     }
                 }
@@ -358,9 +370,8 @@ public struct JSBottomSheet<
     @State
     private var itemCache: Item?
     
-    /// Animation state
-    @State
-    private var isPresenting: Bool
+    /// Presenting state
+    private var isPresenting: Bool { item != nil && itemCache != nil && contentSize != .zero }
     
     /// Timeout
     private let timeout: TimeInterval?
@@ -398,7 +409,6 @@ public struct JSBottomSheet<
     ) {
         self._item = item
         self._itemCache = .init(initialValue: item.wrappedValue)
-        self._isPresenting = .init(wrappedValue: item.wrappedValue != nil)
         self._detentState = detentState
         self.detents = detents
         self.timeout = timeout
