@@ -185,6 +185,8 @@ public struct JSBottomSheet<
 >: View {
     // MARK: - View
     public var body: some View {
+        let isPresenting = item != nil && itemCache != nil && contentSize != .zero
+        
         GeometryReader { reader in
             let safeAreaInsets = reader.safeAreaInsets
             let sheetSize = reader.size
@@ -221,14 +223,14 @@ public struct JSBottomSheet<
             
             let sheetOffset = CGPoint(
                 x: 0,
-                y: isPresenting
+                y: isPresented
                     ? baseOffset.y
                         - max(min(currentOffset.y, maxDetent), minDetent)
                         - safeAreaInsets.bottom
                     : baseOffset.y
             )
             
-            let backdropOpacity = isPresenting ? 1.0 : 0.0
+            let backdropOpacity = isPresented ? 1.0 : 0.0
             
             ZStack {
                 backdrop
@@ -253,7 +255,7 @@ public struct JSBottomSheet<
                 }
                     .frame(height: maxDetent)
                     .offset(y: sheetOffset.y)
-                    .animation(options.presentAnimation, value: isPresenting)
+                    .animation(options.presentAnimation, value: isPresented)
             }
                 .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
@@ -269,6 +271,8 @@ public struct JSBottomSheet<
                 self.itemCache = item
             }
             .onChange(of: isPresenting) { isPresenting in
+                self.isPresented = isPresenting
+                
                 if let timeout, isPresenting {
                     timeoutTask = Task {
                         try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
@@ -371,7 +375,8 @@ public struct JSBottomSheet<
     private var itemCache: Item?
     
     /// Presenting state
-    private var isPresenting: Bool { item != nil && itemCache != nil && contentSize != .zero }
+    @State
+    private var isPresented: Bool
     
     /// Timeout
     private let timeout: TimeInterval?
@@ -409,6 +414,7 @@ public struct JSBottomSheet<
     ) {
         self._item = item
         self._itemCache = .init(initialValue: item.wrappedValue)
+        self._isPresented = .init(initialValue: item.wrappedValue != nil)
         self._detentState = detentState
         self.detents = detents
         self.timeout = timeout
