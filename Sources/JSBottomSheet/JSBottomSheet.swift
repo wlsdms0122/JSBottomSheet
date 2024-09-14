@@ -185,6 +185,8 @@ public struct JSBottomSheet<
 >: View {
     // MARK: - View
     public var body: some View {
+        let isPresenting = item != nil && itemCache != nil && contentSize != .zero
+        
         GeometryReader { reader in
             let safeAreaInsets = reader.safeAreaInsets
             let sheetSize = reader.size
@@ -373,7 +375,6 @@ public struct JSBottomSheet<
     private var itemCache: Item?
     
     /// Presenting state
-    private var isPresenting: Bool { item != nil && itemCache != nil && contentSize != .zero }
     @State
     private var isPresented: Bool
     
