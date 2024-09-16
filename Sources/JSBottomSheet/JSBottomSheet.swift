@@ -350,10 +350,10 @@ public struct JSBottomSheet<
         } else {
             GeometryReader { _ in
                 ContentView(content: content)
+                    .background(alignment: .top) {
+                        surface().ignoresSafeArea()
+                    }
             }
-                .background(alignment: .top) {
-                    surface().ignoresSafeArea()
-                }
         }
     }
     
