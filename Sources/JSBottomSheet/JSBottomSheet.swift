@@ -10,61 +10,56 @@ import SwiftUI
 import Combine
 import Stylish
 
-struct AssociatedKeys {
-    static var trackingKey = "_jsbottomsheet_trakcing"
-}
-
 class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollViewDelegate {
     // MARK: - Property
     private var currentOffset: CGPoint = .zero
     private var maxDetent: CGFloat = .zero
     private var contentScrollBehavior: JSBottomSheetContentScrollBehavior = .none
     
-    private let panGesture: UIPanGestureRecognizer
-    
     private var onChanged: ((CGPoint) -> Void)?
     private var onEnded: ((CGPoint) -> Void)?
     
     private var initialOffset: CGPoint = .zero
     
+    private var gestures: [UIScrollView: UIPanGestureRecognizer] = [:]
+    
     // MARK: - Initializer
-    override init() {
-        self.panGesture = UIPanGestureRecognizer()
-        super.init()
-        
-        panGesture.addTarget(self, action: #selector(handle(_:)))
-        panGesture.delegate = self
-    }
     
     // MARK: - Lifecycle
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        guard let gesture = gestureRecognizer as? UIPanGestureRecognizer, gesture == panGesture else { return false }
+        guard let gesture = gestureRecognizer as? UIPanGestureRecognizer,
+            let scrollView = gestureRecognizer.view as? UIScrollView
+        else { return false }
         
-        guard let scrollView = gesture.view as? UIScrollView else { return false }
+        guard gestures[scrollView] == gesture else { return false }
         
         return shouldScroll(
             scrollView: scrollView,
             gesture: gesture,
             currentOffset: currentOffset,
-            maxDetent: maxDetent
+            maxDetent: maxDetent,
+            behavior: contentScrollBehavior
         )
     }
     
     func gestureRecognizerShouldBegin(
         _ gestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        guard let gesture = gestureRecognizer as? UIPanGestureRecognizer, gesture == panGesture else { return true }
+        guard let gesture = gestureRecognizer as? UIPanGestureRecognizer,
+            let scrollView = gestureRecognizer.view as? UIScrollView
+        else { return true }
         
-        guard let scrollView = gesture.view as? UIScrollView else { return true }
+        guard gestures[scrollView] == gesture else { return true }
         
         return scrollView.contentOffset.y <= 0 && !shouldScroll(
             scrollView: scrollView,
             gesture: gesture,
             currentOffset: currentOffset,
-            maxDetent: maxDetent
+            maxDetent: maxDetent,
+            behavior: contentScrollBehavior
         )
     }
     
@@ -72,11 +67,9 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         _ gestureRecognizer: UIGestureRecognizer,
         shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        guard let gesture = gestureRecognizer as? UIPanGestureRecognizer, let scrollView = gesture.view as? UIScrollView else { return false }
+        guard let scrollView = gestureRecognizer.view as? UIScrollView else { return false }
         
-        guard gesture == panGesture && otherGestureRecognizer == scrollView.panGestureRecognizer else { return false }
-        
-        return true
+        return gestures[scrollView] == gestureRecognizer && otherGestureRecognizer == scrollView.panGestureRecognizer
     }
     
     // MARK: - Public
@@ -88,7 +81,15 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         onChanged: @escaping (CGPoint) -> Void,
         onEnded: @escaping (CGPoint) -> Void
     ) {
-        scrollView.addGestureRecognizer(panGesture)
+        if gestures[scrollView] == nil {
+            let gesture = UIPanGestureRecognizer()
+            gesture.addTarget(self, action: #selector(handle(_:)))
+            gesture.delegate = self
+            
+            scrollView.addGestureRecognizer(gesture)
+            
+            gestures[scrollView] = gesture
+        }
         
         self.currentOffset = currentOffset
         self.maxDetent = maxDetent
@@ -103,11 +104,12 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
         scrollView: UIScrollView,
         gesture: UIPanGestureRecognizer,
         currentOffset: CGPoint,
-        maxDetent: CGFloat
+        maxDetent: CGFloat,
+        behavior: JSBottomSheetContentScrollBehavior
     ) -> Bool {
         let translation = gesture.translation(in: gesture.view)
         
-        guard checkScrollBehavior(contentScrollBehavior, translation: translation) else { return true }
+        guard checkScrollBehavior(behavior, translation: translation) else { return true }
         
         let directionAdjust = translation.y > 0 ? -10.0 : 10.0
         
@@ -121,23 +123,17 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
     
     private func checkScrollBehavior(_ behavior: JSBottomSheetContentScrollBehavior, translation: CGPoint) -> Bool {
         switch behavior {
-        case .both:
-            true
-            
-        case .up:
-            translation.y <= 0
-            
-        case .down:
-            translation.y > 0
-            
-        case .none:
-            false
+        case .both: true
+        case .up: translation.y <= 0
+        case .down: translation.y > 0
+        case .none: false
         }
     }
     
     @objc
     private func handle(_ gesture: UIPanGestureRecognizer) {
         guard let scrollView = gesture.view as? UIScrollView else { return }
+        
         let translation = gesture.translation(in: scrollView)
         
         switch gesture.state {
@@ -317,7 +313,7 @@ public struct JSBottomSheet<
                 LookUp {
                     ScrollViewGestureHandler()
                 } predicate: { view in
-                    let value = objc_getAssociatedObject(view, &AssociatedKeys.trackingKey) as? Bool
+                    let value = objc_getAssociatedObject(view, &AssociatedKeys.trackingScrollViewKey) as? Bool
                     return view is UIScrollView && value ?? false
                 } lookedUp: { view, coordinator in
                     guard let scrollView = view as? UIScrollView else { return }
