@@ -181,8 +181,6 @@ public struct JSBottomSheet<
 >: View {
     // MARK: - View
     public var body: some View {
-        let isPresenting = item != nil && itemCache != nil && contentSize != .zero
-        
         GeometryReader { reader in
             let safeAreaInsets = reader.safeAreaInsets
             let sheetSize = reader.size
@@ -252,6 +250,7 @@ public struct JSBottomSheet<
                     .frame(height: maxDetent)
                     .offset(y: sheetOffset.y)
                     .animation(options.presentAnimation, value: isPresented)
+                    .animation(options.detentTransitionAnimation, value: detentState)
             }
                 .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
@@ -266,7 +265,7 @@ public struct JSBottomSheet<
                 guard let item else { return }
                 self.itemCache = item
             }
-            .onChange(of: isPresenting) { isPresenting in
+            .onChange(of: item != nil && itemCache != nil && contentSize != .zero) { isPresenting in
                 self.isPresented = isPresenting
                 
                 if let timeout, isPresenting {
