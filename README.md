@@ -9,6 +9,8 @@
 - [Getting Started](#getting-started)
   - [Basic Usage](#basic-usage)
   - [Sheet Content](#sheet-content)
+  - [Scroll Content](#scroll-content)
+  - [Detent](#detent)
   - [Additional Options](#additional-options)
 - [Contribution](#contribution)
 - [License](#license)
@@ -96,6 +98,25 @@ struct ContentView: View {
 
     @State
     private var isPresented: Bool = false
+}
+```
+
+## Scroll Content
+`JSBottomSheet` also supports scrollable content. To enable this feature, you can add `.trackingScroll()` modifier to the content.
+
+```swift
+JSBottomSheet($isPresented) {
+    ScrollView {
+        LazyVStack {
+            ForEach(0..<100, id: \.self) { id in
+                Text("\(id)")
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .border(.black)
+            }
+        }
+    }
+    .trackingScroll()
 }
 ```
 

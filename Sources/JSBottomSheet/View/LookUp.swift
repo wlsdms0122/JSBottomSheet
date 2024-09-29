@@ -9,13 +9,13 @@ import Foundation
 import SwiftUI
 
 class LookUpViewController<
-    LookUpView: UIView,
     Content: View
 >: UIHostingController<Content> {
     // MARK: - View
     
     // MARK: - Property
-    private var handler: ((LookUpView) -> Void)?
+    private var predicate: ((UIView) -> Bool)?
+    private var handler: ((UIView) -> Void)?
     
     // MARK: - Initializer
     
@@ -28,80 +28,79 @@ class LookUpViewController<
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         
-        guard let lookupView = lookUp(view) else { return }
-        handler?(lookupView)
+        guard let view else { return }
+        lookUp(view).forEach { view in handler?(view) }
     }
     
     // MARK: - Public
-    func update(_ content: Content, lookedUp handler: @escaping (LookUpView) -> Void) {
+    func update(_ content: Content, predicate: @escaping (UIView) -> Bool, lookedUp handler: @escaping (UIView) -> Void) {
         rootView = content
+        
+        self.predicate = predicate
         self.handler = handler
     }
     
     // MARK: - Private
-    private func lookUp(_ view: UIView?) -> LookUpView? {
-        guard let view else { return nil }
-        
-        let lookupView = view.subviews
-            .compactMap { view in view as? LookUpView }
-            .first
-        
-        guard let lookupView else {
-            return view.subviews
-                .compactMap { view in lookUp(view) }
-                .first
-        }
-        
-        return lookupView
+    private func lookUp(_ view: UIView) -> [UIView] {
+        [view] + view.subviews.flatMap { view in lookUp(view) }
+            .filter { view in predicate?(view) ?? false }
     }
 }
 
 struct LookUp<
-    LookUpView: UIView,
     Coordinator,
     Content: View
 >: UIViewControllerRepresentable {
     // MARK: - Property
     private let coordinator: () -> Coordinator
-    private let lookUpView: LookUpView.Type
-    private let handler: (LookUpView, Coordinator) -> Void
+    
+    private let predicate: (UIView) -> Bool
+    private let handler: (UIView, Coordinator) -> Void
     private let content: Content
     
     // MARK: - Initializer
     init(
-        _ lookUpView: LookUpView.Type,
         coordinator: @escaping () -> Coordinator = { },
-        lookedUp handler: @escaping (LookUpView, Coordinator) -> Void = { _, _ in },
+        predicate: @escaping (UIView) -> Bool,
+        lookedUp handler: @escaping (UIView, Coordinator) -> Void,
         @ViewBuilder content: () -> Content
     ) {
-        self.lookUpView = lookUpView
         self.coordinator = coordinator
+        self.predicate = predicate
         self.handler = handler
         self.content = content()
     }
     
-    init(
+    init<LookUpView: UIView>(
         _ lookUpView: LookUpView.Type,
-        lookedUp handler: @escaping (LookUpView) -> Void = { _ in },
+        coordinator: @escaping () -> Coordinator = { },
+        lookedUp handler: @escaping (LookUpView, Coordinator) -> Void,
         @ViewBuilder content: () -> Content
-    ) where Coordinator == Void {
-        self.lookUpView = lookUpView
-        self.coordinator = { }
-        self.handler = { view, _ in handler(view) }
-        self.content = content()
+    ) {
+        self.init(
+            coordinator: coordinator,
+            predicate: { view in view is LookUpView },
+            lookedUp: { view, coordinator in
+                guard let view = view as? LookUpView else { return }
+                handler(view, coordinator)
+            },
+            content: content
+        )
     }
     
     // MARK: - Lifecycle
-    func makeUIViewController(context: Context) -> LookUpViewController<LookUpView, Content> {
-        let viewController = LookUpViewController<LookUpView, Content>(
+    func makeUIViewController(context: Context) -> LookUpViewController<Content> {
+        let viewController = LookUpViewController<Content>(
             rootView: content
         )
         
         return viewController
     }
     
-    func updateUIViewController(_ uiViewController: LookUpViewController<LookUpView, Content>, context: Context) {
+    func updateUIViewController(_ uiViewController: LookUpViewController<Content>, context: Context) {
         uiViewController.update(content) { view in
+            predicate(view)
+        } lookedUp: { view in
             handler(view, context.coordinator)
         }
     }
