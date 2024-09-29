@@ -250,6 +250,7 @@ struct _Preview: View {
                             }
                         }
                     }
+                        .trackingScroll()
                 }
             }
                 .configure(
