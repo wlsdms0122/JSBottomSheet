@@ -175,7 +175,7 @@ You can configure additional options for the bottom sheet using [`Stylish`](http
 
 ```swift
 @Stylish
-public struct JSBottomSheetOptions {
+public struct JSBottomSheetOption {
     /// Bottom sheet should dismiss when backdrop tap. The default value of this property is `true`.
     public var canBackdropDismiss: Bool = true
     /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
