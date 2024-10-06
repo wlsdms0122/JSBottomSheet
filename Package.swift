@@ -15,7 +15,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/wlsdms0122/Stylish.git", from: "2.0.0"),
+        .package(url: "https://github.com/wlsdms0122/Stylish.git", from: "3.0.1")
     ],
     targets: [
         .target(

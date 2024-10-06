@@ -253,18 +253,18 @@ struct _Preview: View {
                         .trackingScroll()
                 }
             }
-                .configure(
-                    JSBottomSheetOptions.self,
+                .config(
+                    JSBottomSheetOption.self,
                     style: \.contentInsets.top,
                     to: 14
                 )
-                .configure(
-                    JSBottomSheetOptions.self,
+                .config(
+                    JSBottomSheetOption.self,
                     style: \.contentScrollBehavior,
                     to: scrollBehavior
                 )
-                .configure(
-                    JSBottomSheetOptions.self,
+                .config(
+                    JSBottomSheetOption.self,
                     style: \.canScroll,
                     to: canScroll
                 )

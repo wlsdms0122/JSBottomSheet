@@ -153,10 +153,10 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
 }
 
 @Stylish
-public struct JSBottomSheetOptions {
+public struct JSBottomSheetOption {
     /// Bottom sheet should dismiss when backdrop tap. The default value of this property is `true`.
     public var canBackdropDismiss: Bool = true
-    // / Bottom sheet should scroll to change detent. The default value of this property is `true`.
+    /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
     public var canScroll: Bool = true
     /// Bottom sheet adjusts its size based on the content's scroll direction. The default value of this property is `both`.
     public var contentScrollBehavior: JSBottomSheetContentScrollBehavior = .both
@@ -232,16 +232,16 @@ public struct JSBottomSheet<
                     .opacity(backdropOpacity)
                     .animation(.easeInOut(duration: 0.2), value: backdropOpacity)
                     .onTapGesture {
-                        guard options.canBackdropDismiss else { return }
+                        guard option.canBackdropDismiss else { return }
                         item = nil
                     }
                 
                 SheetContent(
-                    canScroll: options.canScroll,
+                    canScroll: option.canScroll,
                     detents: detents,
                     currentOffset: currentOffset,
                     maxDetent: maxDetent,
-                    contentScrollBehavior: options.contentScrollBehavior
+                    contentScrollBehavior: option.contentScrollBehavior
                 ) {
                     sheet.frame(height: screenSize.height)
                 } content: { item in
@@ -249,12 +249,12 @@ public struct JSBottomSheet<
                 }
                     .frame(height: maxDetent)
                     .offset(y: sheetOffset.y)
-                    .animation(options.presentAnimation, value: isPresented)
-                    .animation(options.detentTransitionAnimation, value: detentState)
+                    .animation(option.presentAnimation, value: isPresented)
+                    .animation(option.detentTransitionAnimation, value: detentState)
             }
                 .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
-                    options.onBottomSheetGeometryChange(.init(
+                    option.onBottomSheetGeometryChange(.init(
                         contentOffset: offset,
                         sheetSize: sheetSize,
                         detents: detents
@@ -296,11 +296,11 @@ public struct JSBottomSheet<
             GestureView(of: UIPanGestureRecognizer.self) { gesture in
                 self.translation = gesture.translation(in: gesture.view)
             } onChanged: { gesture in
-                withAnimation(options.positionChangeAnimation) {
+                withAnimation(option.positionChangeAnimation) {
                     self.translation = gesture.translation(in: gesture.view)
                 }
             } onEnded: { _ in
-                withAnimation(options.detentTransitionAnimation) {
+                withAnimation(option.detentTransitionAnimation) {
                     self.translation = .zero
                     self.detentState = nearestDetent(
                         state: detentState,
@@ -323,11 +323,11 @@ public struct JSBottomSheet<
                         maxDetent: maxDetent,
                         contentScrollBehavior: contentScrollBehavior
                     ) { translation in
-                        withAnimation(options.positionChangeAnimation) {
+                        withAnimation(option.positionChangeAnimation) {
                             self.translation = translation
                         }
                     } onEnded: { translation in
-                        withAnimation(options.detentTransitionAnimation) {
+                        withAnimation(option.detentTransitionAnimation) {
                             self.translation = translation
                             self.detentState = nearestDetent(
                                 state: detentState,
@@ -360,7 +360,7 @@ public struct JSBottomSheet<
     @ViewBuilder
     private func ContentView<SheetContent: View>(@ViewBuilder content: @escaping (Item) -> SheetContent) -> some View {
         if let item = itemCache {
-            content(item).padding(options.contentInsets)
+            content(item).padding(option.contentInsets)
                 .onFrameChange($contentSize, path: \.size)
                 .frame(maxWidth: .infinity)
         }
@@ -399,8 +399,8 @@ public struct JSBottomSheet<
     private let sheet: Sheet
     private let content: (Item) -> Content
     
-    @Styles(JSBottomSheetOptions.self)
-    private var options: JSBottomSheetOptions
+    @Style(JSBottomSheetOption.self)
+    private var option
     
     // MARK: - Initializer
     public init(
