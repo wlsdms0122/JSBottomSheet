@@ -20,12 +20,9 @@ struct TrackingScrollViewModifier: ViewModifier {
     // MARK: - Lifecycle
     public func body(content: Content) -> some View {
         LookUp(UIScrollView.self) { scrollView, _ in
-            objc_setAssociatedObject(
-                scrollView,
-                &AssociatedKeys.trackingScrollViewKey,
-                true,
-                .OBJC_ASSOCIATION_RETAIN_NONATOMIC
-            )
+            withUnsafePointer(to: AssociatedKeys.trackingScrollViewKey) { key in
+                objc_setAssociatedObject(scrollView, key, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            }
         } content: {
             content
         }
