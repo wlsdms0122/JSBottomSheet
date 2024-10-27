@@ -181,6 +181,8 @@ public struct JSBottomSheet<
 >: View {
     // MARK: - View
     public var body: some View {
+        let isPresented = item != nil && itemCache != nil && contentSize != .zero
+        
         GeometryReader { reader in
             let safeAreaInsets = reader.safeAreaInsets
             let sheetSize = reader.size
@@ -265,10 +267,8 @@ public struct JSBottomSheet<
                 guard let item else { return }
                 self.itemCache = item
             }
-            .onChange(of: item != nil && itemCache != nil && contentSize != .zero) { isPresenting in
-                self.isPresented = isPresenting
-                
-                if let timeout, isPresenting {
+            .onChange(of: isPresented) { isPresented in
+                if let timeout, isPresented {
                     timeoutTask = Task {
                         try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                         item = nil
@@ -374,10 +374,6 @@ public struct JSBottomSheet<
     @State
     private var itemCache: Item?
     
-    /// Presenting state
-    @State
-    private var isPresented: Bool
-    
     /// Timeout
     private let timeout: TimeInterval?
     @State
@@ -414,7 +410,7 @@ public struct JSBottomSheet<
     ) {
         self._item = item
         self._itemCache = .init(initialValue: item.wrappedValue)
-        self._isPresented = .init(initialValue: item.wrappedValue != nil)
+        self._contentSize = .init(initialValue: item.wrappedValue != nil ? .init(width: 1, height: 1) : .zero)
         self._detentState = detentState
         self.detents = detents
         self.timeout = timeout
