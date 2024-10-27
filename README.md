@@ -192,6 +192,8 @@ public struct JSBottomSheetOption {
     public var positionChangeAnimation: Animation = .easeInOut(duration: 0.2)
     /// Animation used when transitioning between detents.
     public var detentTransitionAnimation: Animation = .easeInOut(duration: 0.2)
+    /// Animation used when the content size changes.
+    public var contentChangedAnimation: Animation = .easeInOut(duration: 0.2)
 }
 ```
 
