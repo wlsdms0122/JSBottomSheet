@@ -170,6 +170,8 @@ public struct JSBottomSheetOption {
     public var positionChangeAnimation: Animation = .easeInOut(duration: 0.2)
     /// Animation used when transitioning between detents.
     public var detentTransitionAnimation: Animation = .easeInOut(duration: 0.2)
+    /// Animation used when the content size changes.
+    public var contentChangedAnimation: Animation = .easeInOut(duration: 0.2)
 }
 
 public struct JSBottomSheet<
@@ -228,6 +230,8 @@ public struct JSBottomSheet<
             
             let backdropOpacity = isPresented ? 1.0 : 0.0
             
+            let animatableContentSize = max(contentSize.width * contentSize.height * (isPresenting ? 1 : -1), 0)
+            
             ZStack {
                 backdrop
                     .ignoresSafeArea()
@@ -253,6 +257,7 @@ public struct JSBottomSheet<
                     .offset(y: sheetOffset.y)
                     .animation(option.presentAnimation, value: isPresented)
                     .animation(option.detentTransitionAnimation, value: detentState)
+                    .animation(option.contentChangedAnimation, value: animatableContentSize)
             }
                 .frame(width: sheetSize.width, height: sheetSize.height)
                 .onChange(of: sheetOffset) { offset in
@@ -268,6 +273,8 @@ public struct JSBottomSheet<
                 self.itemCache = item
             }
             .onChange(of: isPresented) { isPresented in
+                self.isPresenting = isPresented
+                
                 if let timeout, isPresented {
                     timeoutTask = Task {
                         try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
@@ -276,6 +283,9 @@ public struct JSBottomSheet<
                 } else {
                     timeoutTask?.cancel()
                 }
+            }
+            .task {
+                self.isPresenting = isPresented
             }
     }
     
@@ -373,6 +383,9 @@ public struct JSBottomSheet<
     /// Presenting item cache
     @State
     private var itemCache: Item?
+    /// Sheet is correctly presenting
+    @State
+    private var isPresenting: Bool = false
     
     /// Timeout
     private let timeout: TimeInterval?
