@@ -17,27 +17,18 @@ public struct JSBottomSheetDefaultSheet<Background: View, Grabber: View>: View {
                 alignment: .top
             )
         }
-            .clipShape(
-                CornerRectangle(
-                    cornerRadius: cornerRadius,
-                    corners: [.topLeft, .topRight]
-                )
-            )
     }
     
     // MARK: - Property
     private let background: Background
-    private let cornerRadius: CGFloat
     private let grabber: Grabber
     
     // MARK: - Initializer
     public init(
         background: Background = Color.white,
-        cornerRadius: CGFloat = 10,
         @ViewBuilder grabber: () -> Grabber = { EmptyView() }
     ) {
         self.background = background
-        self.cornerRadius = cornerRadius
         self.grabber = grabber()
     }
     
