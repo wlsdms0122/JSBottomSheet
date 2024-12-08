@@ -24,6 +24,7 @@ struct TrackingScrollViewModifier: ViewModifier {
         } content: {
             content
         }
+            .ignoresSafeArea()
     }
     
     // MARK: - Public

@@ -179,6 +179,7 @@ public struct JSBottomSheet<
     Item,
     Backdrop: View,
     Sheet: View,
+    Mask: View,
     Content: View
 >: View {
     // MARK: - View
@@ -353,6 +354,7 @@ public struct JSBottomSheet<
                                 surface().ignoresSafeArea()
                             }
                     }
+                        .mask(mask)
                 }
                     .ignoresSafeArea()
             }
@@ -364,6 +366,7 @@ public struct JSBottomSheet<
                         surface().ignoresSafeArea()
                     }
             }
+                .mask(mask)
         }
     }
     
@@ -405,6 +408,7 @@ public struct JSBottomSheet<
     private let detents: [DetentState: JSBottomSheetDetent]
     
     private let backdrop: Backdrop
+    private let mask: Mask
     private let sheet: Sheet
     private let content: (Item) -> Content
     
@@ -419,6 +423,7 @@ public struct JSBottomSheet<
         timeout: TimeInterval? = nil,
         @ViewBuilder backdrop: () -> Backdrop = { Color.black.opacity(0.3) },
         @ViewBuilder sheet: () -> Sheet = { JSBottomSheetDefaultSheet() },
+        @ViewBuilder mask: () -> Mask = { JSBottomSheetDefaultMask() },
         @ViewBuilder content: @escaping (Item) -> Content
     ) {
         self._item = item
@@ -429,6 +434,7 @@ public struct JSBottomSheet<
         self.timeout = timeout
         self.backdrop = backdrop()
         self.sheet = sheet()
+        self.mask = mask()
         self.content = content
     }
     
@@ -439,6 +445,7 @@ public struct JSBottomSheet<
         timeout: TimeInterval? = nil,
         @ViewBuilder backdrop: () -> Backdrop = { Color.black.opacity(0.3) },
         @ViewBuilder sheet: () -> Sheet = { JSBottomSheetDefaultSheet() },
+        @ViewBuilder mask: () -> Mask = { JSBottomSheetDefaultMask() },
         @ViewBuilder content: @escaping () -> Content
     ) where Item == Void {
         self.init(
@@ -452,6 +459,7 @@ public struct JSBottomSheet<
             timeout: timeout,
             backdrop: backdrop,
             sheet: sheet,
+            mask: mask,
             content: content
         )
     }
@@ -473,6 +481,7 @@ public extension View {
     func bottomSheet<
         Backdrop: View,
         Sheet: View,
+        Mask: View,
         Content: View
     >(
         _ isPresented: Binding<Bool>,
@@ -481,6 +490,7 @@ public extension View {
         timeout: TimeInterval? = nil,
         @ViewBuilder backdrop: () -> Backdrop = { Color.black.opacity(0.3) },
         @ViewBuilder sheet: () -> Sheet = { JSBottomSheetDefaultSheet() },
+        @ViewBuilder mask: () -> Mask = { JSBottomSheetDefaultMask() },
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
         ZStack {
@@ -492,6 +502,7 @@ public extension View {
                 timeout: timeout,
                 backdrop: backdrop,
                 sheet: sheet,
+                mask: mask,
                 content: content
             )
         }
