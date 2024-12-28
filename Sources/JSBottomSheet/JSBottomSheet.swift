@@ -226,7 +226,7 @@ public struct JSBottomSheet<
                 x: 0,
                 y: isPresented
                     ? baseOffset.y
-                        - max(min(currentOffset.y, maxDetent), minDetent)
+                        - max(min(currentOffset.y, maxDetent), option.canScrollDismiss ? 0 : minDetent)
                         - safeAreaInsets.bottom
                     : baseOffset.y
             )
