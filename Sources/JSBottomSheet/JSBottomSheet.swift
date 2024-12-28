@@ -165,7 +165,7 @@ public struct JSBottomSheetOption {
     /// Bottom sheet content insets. The intrinsic detent calculate size include insets.
     public var contentInsets: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     /// Bottom sheet geometry changed handler.
-    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }    
+    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }
     /// Animation used when presenting or dismissing the bottom sheet.
     public var presentAnimation: Animation = .easeInOut(duration: 0.2)
     /// Animation used when the sheet's position changes within its current detent.
