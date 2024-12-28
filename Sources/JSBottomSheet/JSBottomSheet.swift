@@ -156,6 +156,8 @@ class ScrollViewGestureHandler: NSObject, UIGestureRecognizerDelegate, UIScrollV
 public struct JSBottomSheetOption {
     /// Bottom sheet should dismiss when backdrop tap. The default value of this property is `true`.
     public var canBackdropDismiss: Bool = true
+    /// Bottom sheet should dismiss when scroll down. The default value of this property is `false`.
+    public var canScrollDismiss: Bool = false
     /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
     public var canScroll: Bool = true
     /// Bottom sheet adjusts its size based on the content's scroll direction. The default value of this property is `both`.
@@ -163,7 +165,7 @@ public struct JSBottomSheetOption {
     /// Bottom sheet content insets. The intrinsic detent calculate size include insets.
     public var contentInsets: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     /// Bottom sheet geometry changed handler.
-    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }    
+    public var onBottomSheetGeometryChange: (JSBottomSheetGeometry) -> Void = { _ in }
     /// Animation used when presenting or dismissing the bottom sheet.
     public var presentAnimation: Animation = .easeInOut(duration: 0.2)
     /// Animation used when the sheet's position changes within its current detent.
@@ -224,7 +226,7 @@ public struct JSBottomSheet<
                 x: 0,
                 y: isPresented
                     ? baseOffset.y
-                        - max(min(currentOffset.y, maxDetent), minDetent)
+                        - max(min(currentOffset.y, maxDetent), option.canScrollDismiss ? 0 : minDetent)
                         - safeAreaInsets.bottom
                     : baseOffset.y
             )
@@ -313,11 +315,16 @@ public struct JSBottomSheet<
             } onEnded: { _ in
                 withAnimation(option.detentTransitionAnimation) {
                     self.translation = .zero
-                    self.detentState = nearestDetent(
-                        state: detentState,
-                        detents: detents,
+                    
+                    if let state = nearestDetentState(
+                        of: detents,
+                        current: detentState,
                         offset: currentOffset
-                    )
+                    ) {
+                        self.detentState = state
+                    } else {
+                        self.item = nil
+                    }
                 }
             } content: {
                 LookUp {
@@ -340,11 +347,16 @@ public struct JSBottomSheet<
                     } onEnded: { translation in
                         withAnimation(option.detentTransitionAnimation) {
                             self.translation = translation
-                            self.detentState = nearestDetent(
-                                state: detentState,
-                                detents: detents,
+                            
+                            if let state = nearestDetentState(
+                                of: detents,
+                                current: detentState,
                                 offset: currentOffset
-                            )
+                            ) {
+                                self.detentState = state
+                            } else {
+                                self.item = nil
+                            }
                         }
                     }
                 } content: {
@@ -467,13 +479,27 @@ public struct JSBottomSheet<
     // MARK: - Public
     
     // MARK: - Private
-    private func nearestDetent(
-        state: DetentState,
-        detents: [DetentState: CGFloat],
+    private func nearestDetentState(
+        of detents: [DetentState: CGFloat],
+        current detent: DetentState,
         offset: CGPoint
-    ) -> DetentState {
-        detents.min { lhs, rhs in abs(lhs.value - offset.y) < abs(rhs.value - offset.y) }?
-            .key ?? state
+    ) -> DetentState? {
+        let nearestDetent = detents.min { lhs, rhs in
+            abs(lhs.value - offset.y) < abs(rhs.value - offset.y)
+        }
+        
+        guard let nearestDetent else {
+            // Return current detent if nearest detent is `nil`.
+            return detent
+        }
+        
+        guard option.canScrollDismiss else {
+            // Return nearest detent if scroll dismiss is disabled.
+            return nearestDetent.key
+        }
+        
+        // Return nearest detent if the distance between the nearest detent and the offset is less than the offset.
+        return abs(nearestDetent.value - offset.y) < offset.y ? nearestDetent.key : nil
     }
 }
 
