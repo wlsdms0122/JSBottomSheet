@@ -178,6 +178,8 @@ You can configure additional options for the bottom sheet using [`Stylish`](http
 public struct JSBottomSheetOption {
     /// Bottom sheet should dismiss when backdrop tap. The default value of this property is `true`.
     public var canBackdropDismiss: Bool = true
+    /// Bottom sheet should dismiss when scroll down. The default value of this property is `false`.
+    public var canScrollDismiss: Bool = false
     /// Bottom sheet should scroll to change detent. The default value of this property is `true`.
     public var canScroll: Bool = true
     /// Bottom sheet adjusts its size based on the content's scroll direction. The default value of this property is `both`.
